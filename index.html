@@ -28,22 +28,19 @@
 </div>
 
 <script>
-    async function fetchPrice() {
-        const url = 'https://www.caltex.com/hk/zh/motorists/products-and-services/fuel-prices.html';
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        
+async function fetchPrice() {
         try {
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
+            // 改為直接呼叫你自己的 API 路徑
+            const response = await fetch('/api/fuel'); 
+            const htmlText = await response.text();
             
-            // 尋找包含 "特配Techron®白金汽油" 的表格列
-            // 根據加德士網站結構，價格通常在相鄰的欄位
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
             const rows = doc.querySelectorAll('tr');
             for (let row of rows) {
+                // 注意：確保這裡的文字與網頁上的完全一致
                 if (row.innerText.includes('特配Techron®白金汽油')) {
-                    // 這裡根據網頁結構提取價格數字
                     const priceText = row.innerText.match(/HKD\s*([\d.]+)/);
                     if (priceText) {
                         document.getElementById('officialPrice').innerText = `HK$ ${priceText[1]}`;
@@ -52,8 +49,9 @@
                     }
                 }
             }
+            throw new Error("找不到價格數據");
         } catch (e) {
-            document.getElementById('officialPrice').innerText = "讀取失敗 (請檢查網絡)";
+            document.getElementById('officialPrice').innerText = "讀取失敗 (請檢查結構是否變更)";
             console.error(e);
         }
     }
