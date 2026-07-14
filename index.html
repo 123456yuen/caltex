@@ -1,73 +1,32 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>加德士白金汽油計算機</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 400px; }
-        input { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
-        button { padding: 10px; background: #e74c3c; color: white; border: none; cursor: pointer; width: 100%; }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <h3>白金汽油即時報價</h3>
-    <p>官方牌價: <span id="officialPrice">讀取中...</span></p>
-    
-    <label>紅卡折扣 ($/L):</label>
-    <input type="number" id="redDiscount" value="6.00" step="0.1">
-    
-    <label>星期日/額外折扣 ($/L):</label>
-    <input type="number" id="sundayDiscount" value="1.00" step="0.1">
-    
-    <button onclick="calculate()">計算最終價格</button>
-    
-    <h3 id="result">最終價: --</h3>
-</div>
-
-<script>
 async function fetchPrice() {
-        try {
-            // 改為直接呼叫你自己的 API 路徑
-            const response = await fetch('/api/fuel'); 
-            const htmlText = await response.text();
+    try {
+        const response = await fetch('/api/fuel'); 
+        const htmlText = await response.text();
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        
+        // --- 偵錯用：將整頁文字印出來看看 ---
+        console.log("網頁文字內容:", doc.body.innerText.substring(0, 1000)); // 只印前 1000 字
+        
+        const rows = doc.querySelectorAll('tr');
+        for (let row of rows) {
+            // 如果這行文字出現了，你可以看到程式正在讀取什麼
+            // console.log("檢查中:", row.innerText); 
             
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            
-            const rows = doc.querySelectorAll('tr');
-            for (let row of rows) {
-                // 注意：確保這裡的文字與網頁上的完全一致
-                if (row.innerText.includes('特配Techron®白金汽油')) {
-                    const priceText = row.innerText.match(/HKD\s*([\d.]+)/);
-                    if (priceText) {
-                        document.getElementById('officialPrice').innerText = `HK$ ${priceText[1]}`;
-                        document.getElementById('officialPrice').dataset.price = priceText[1];
-                        return;
-                    }
+            if (row.innerText.includes('白金汽油')) { // 嘗試簡化關鍵字
+                console.log("找到關鍵字行:", row.innerText);
+                const priceText = row.innerText.match(/([\d.]+)/); // 放寬 regex 測試
+                if (priceText) {
+                    document.getElementById('officialPrice').innerText = `HK$ ${priceText[1]}`;
+                    document.getElementById('officialPrice').dataset.price = priceText[1];
+                    return;
                 }
             }
-            throw new Error("找不到價格數據");
-        } catch (e) {
-            document.getElementById('officialPrice').innerText = "讀取失敗 (請檢查結構是否變更)";
-            console.error(e);
         }
+        throw new Error("找不到價格數據");
+    } catch (e) {
+        document.getElementById('officialPrice').innerText = "讀取失敗";
+        console.error(e);
     }
-
-    function calculate() {
-        const price = parseFloat(document.getElementById('officialPrice').dataset.price);
-        const red = parseFloat(document.getElementById('redDiscount').value);
-        const sun = parseFloat(document.getElementById('sundayDiscount').value);
-        
-        if (!isNaN(price)) {
-            const final = price - red - sun;
-            document.getElementById('result').innerText = `最終價: HK$ ${final.toFixed(2)} / L`;
-        }
-    }
-
-    window.onload = fetchPrice;
-</script>
-</body>
-</html>
+}
