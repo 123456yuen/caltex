@@ -38,27 +38,32 @@
 </div>
 
 <script>
-let currentPrice = 33.64;
-let lastUpdate = "";
+let currentPrice = 33.64;   // 預設值
 
 async function autoUpdate() {
   const status = document.getElementById('status');
   try {
     const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://oil-price.consumer.org.hk/tc/today-discount'));
     const html = await res.text();
-    const match = html.match(/白金汽油.*?\$?([\d.]+)/i);
-    if (match) currentPrice = parseFloat(match[1]);
 
-    lastUpdate = new Date().toLocaleTimeString('zh-HK');
-    status.textContent = `✅ 油價已自動更新 (${lastUpdate})`;
+    // 加強提取
+    let match = html.match(/白金汽油.*?\$?([\d.]+)/i) || 
+                html.match(/Platinum.*?\$?([\d.]+)/i);
+    
+    if (match && parseFloat(match[1]) > 20) {
+      currentPrice = parseFloat(match[1]);
+      status.innerHTML = `✅ 油價已自動更新 (${new Date().toLocaleTimeString('zh-HK')})`;
+    } else {
+      status.innerHTML = `⚠️ 更新失敗 • 使用預設價`;
+    }
   } catch(e) {
-    status.textContent = "⚠️ 自動更新失敗 • 使用上次油價";
+    status.innerHTML = `⚠️ 更新失敗 • 使用預設價`;
   }
   calc();
 }
 
 function calc(isSunday = false) {
-  const price = parseFloat(document.getElementById('plat') ? document.getElementById('plat').value : currentPrice) || currentPrice;
+  const price = currentPrice;
   const litres = parseFloat(document.getElementById('litres').value) || 0;
   const card = document.getElementById('card').value;
 
@@ -67,21 +72,18 @@ function calc(isSunday = false) {
   let finalPerL = price - discount;
 
   if (isSunday && total >= 350) {
-    total -= 50;
+    total = Math.max(0, total - 50);
     finalPerL = total / litres;
   }
-
-  const finalTotal = total.toFixed(2);
-  const saved = ((price - finalPerL) * litres).toFixed(2);
 
   document.getElementById('result').innerHTML = `
     <h3>${isSunday ? '星期日油券計算' : '計算結果'}</h3>
     <p>白金汽油原價：$${price}</p>
     <p>卡折扣：$${discount} /L</p>
-    ${isSunday ? '<p>油券減：$50</p>' : ''}
+    ${isSunday ? '<p>油券：減 $50</p>' : ''}
     <p class="highlight">折後 $${finalPerL.toFixed(2)} /L</p>
-    <p><b>總金額：$${finalTotal}</b></p>
-    <p style="color:green">慳咗 $${saved}</p>
+    <p><b>總金額：$${total.toFixed(2)}</b></p>
+    <p style="color:green">慳咗 $${(price * litres - total).toFixed(2)}</p>
   `;
 }
 
@@ -89,7 +91,7 @@ function calcSunday() {
   calc(true);
 }
 
-// 頁面載入自動更新
+// 自動更新
 window.onload = autoUpdate;
 </script>
 </body>
