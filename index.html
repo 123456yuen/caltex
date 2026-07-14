@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>加德士紅卡計算器</title>
   <style>
-    body {font-family: -apple-system, system-ui, sans-serif; margin:0; padding:20px; background:#f4f4f4;}
-    .container {max-width:680px; margin:auto; background:white; padding:25px; border-radius:20px; box-shadow:0 8px 30px rgba(0,0,0,0.1);}
+    body {font-family: -apple-system, sans-serif; margin:0; padding:20px; background:#f4f4f4;}
+    .container {max-width:700px; margin:auto; background:white; padding:25px; border-radius:20px; box-shadow:0 8px 30px rgba(0,0,0,0.1);}
     h1 {text-align:center; color:#c8102e;}
-    .status {text-align:center; padding:12px; background:#e8f5e9; color:#2e7d32; border-radius:12px; margin:15px 0;}
-    button {width:100%; padding:16px; margin:10px 0; border:none; border-radius:12px; font-size:1.1rem; font-weight:bold;}
+    label {display:block; margin:15px 0 5px; font-weight:bold;}
+    input, select {width:100%; padding:14px; margin:8px 0; border-radius:12px; border:1px solid #ddd;}
+    button {width:100%; padding:16px; margin:10px 0; border:none; border-radius:12px; font-size:1.05rem; font-weight:bold;}
     .btn-update {background:#007bff; color:white;}
     .btn-calc {background:#c8102e; color:white;}
-    input, select {width:100%; padding:14px; margin:8px 0; border-radius:12px; border:1px solid #ddd; font-size:1.05rem;}
-    .result {margin-top:20px; padding:25px; background:#f0f8ff; border-radius:16px;}
-    .highlight {font-size:2.1rem; color:#c8102e; font-weight:bold;}
+    .result {margin-top:20px; padding:20px; background:#f0f8ff; border-radius:16px;}
+    .highlight {font-size:2rem; color:#c8102e; font-weight:bold;}
   </style>
 </head>
 <body>
 <div class="container">
   <h1>🚗 加德士紅卡計算器</h1>
-  <div class="status" id="status">點擊更新油價</div>
 
-  <button class="btn-update" onclick="updatePrice()">🔄 更新最新油價</button>
+  <label>白金汽油 ($/L)</label>
+  <input type="number" id="plat" value="33.64" step="0.01" oninput="calc()">
 
   <label>入油量 (公升)</label>
-  <input type="number" id="litres" value="50" oninput="calc()">
+  <input type="number" id="litres" value="50" step="1" oninput="calc()">
 
   <label>卡類型</label>
   <select id="card" onchange="calc()">
@@ -33,55 +33,83 @@
     <option value="red" selected>私人能源咭 / 紅卡</option>
   </select>
 
-  <button class="btn-calc" onclick="calc()">計算折實價</button>
+  <button class="btn-calc" onclick="calc()">正常計算</button>
+  <button onclick="calcSunday()">星期日油券計算 (滿$350減$50)</button>
 
   <div class="result" id="result"></div>
 </div>
 
 <script>
-let prices = { platinum: 33.64 };
-
-async function updatePrice() {
-  const status = document.getElementById('status');
-  status.textContent = "正在更新油價...";
-
-  try {
-    const proxy = "https://api.allorigins.win/raw?url=";
-    const target = encodeURIComponent("https://oil-price.consumer.org.hk/tc/today-discount");
-    const res = await fetch(proxy + target);
-    const html = await res.text();
-
-    const match = html.match(/白金汽油.*?\$?([\d.]+)/i);
-    if (match) prices.platinum = parseFloat(match[1]);
-
-    status.innerHTML = `✅ 已更新 (${new Date().toLocaleTimeString('zh-HK')})`;
-  } catch(e) {
-    status.innerHTML = "⚠️ 更新失敗，請稍後再試";
-  }
-  calc();
-}
-
-function calc() {
+function calc(sundayDiscount = 0) {
+  const price = parseFloat(document.getElementById('plat').value) || 33.64;
   const litres = parseFloat(document.getElementById('litres').value) || 0;
   const card = document.getElementById('card').value;
 
-  const price = prices.platinum;
-  const discount = card === "red" ? 12 : 0.9;
-  const final = (price - discount).toFixed(2);
-  const total = (final * litres).toFixed(2);
-  const saved = (discount * litres).toFixed(2);
+  let discount = card === "red" ? 12 : 0.9;
+  let totalBefore = price * litres;
+  let finalPrice = price - discount;
 
-  document.getElementById('result').innerHTML = `
-    <h3>計算結果</h3>
-    <p>白金汽油原價： <b>$${price}</b></p>
-    <p>折扣： <b>$${discount} /L</b></p>
-    <p class="highlight">折後 $${final} /L</p>
-    <p><b>總金額：$${total}</b></p>
-    <p style="color:green">慳咗 $${saved}</p>
-  `;
-}
+  if (sundayDiscount > 0) {
+    totalBefore = Math.max(0, totalBefore - 50);
+    finalPrice = totalBefore / litres;
+  }
 
-window.onload = updatePrice;
-</script>
-</body>
-</html>
+  const total = totalBefore.toFixed(2);
+  const saved = (discount<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加德士紅卡計算器</title>
+  <style>
+    body {font-family: -apple-system, sans-serif; margin:0; padding:20px; background:#f4f4f4;}
+    .container {max-width:700px; margin:auto; background:white; padding:25px; border-radius:20px; box-shadow:0 8px 30px rgba(0,0,0,0.1);}
+    h1 {text-align:center; color:#c8102e;}
+    label {display:block; margin:15px 0 5px; font-weight:bold;}
+    input, select {width:100%; padding:14px; margin:8px 0; border-radius:12px; border:1px solid #ddd;}
+    button {width:100%; padding:16px; margin:10px 0; border:none; border-radius:12px; font-size:1.05rem; font-weight:bold;}
+    .btn-update {background:#007bff; color:white;}
+    .btn-calc {background:#c8102e; color:white;}
+    .result {margin-top:20px; padding:20px; background:#f0f8ff; border-radius:16px;}
+    .highlight {font-size:2rem; color:#c8102e; font-weight:bold;}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🚗 加德士紅卡計算器</h1>
+
+  <label>白金汽油 ($/L)</label>
+  <input type="number" id="plat" value="33.64" step="0.01" oninput="calc()">
+
+  <label>入油量 (公升)</label>
+  <input type="number" id="litres" value="50" step="1" oninput="calc()">
+
+  <label>卡類型</label>
+  <select id="card" onchange="calc()">
+    <option value="fun">加FUN咭</option>
+    <option value="red" selected>私人能源咭 / 紅卡</option>
+  </select>
+
+  <button class="btn-calc" onclick="calc()">正常計算</button>
+  <button onclick="calcSunday()">星期日油券計算 (滿$350減$50)</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+function calc(sundayDiscount = 0) {
+  const price = parseFloat(document.getElementById('plat').value) || 33.64;
+  const litres = parseFloat(document.getElementById('litres').value) || 0;
+  const card = document.getElementById('card').value;
+
+  let discount = card === "red" ? 12 : 0.9;
+  let totalBefore = price * litres;
+  let finalPrice = price - discount;
+
+  if (sundayDiscount > 0) {
+    totalBefore = Math.max(0, totalBefore - 50);
+    finalPrice = totalBefore / litres;
+  }
+
+  const total = totalBefore.toFixed(2);
+  const saved = (discount
