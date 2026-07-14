@@ -2,13 +2,13 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>加德士汽油計算機</title>
+    <title>加德士白金汽油計算機</title>
     <style>
         body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
         .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 400px; margin: auto; }
         input { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
         button { padding: 10px; background: #e74c3c; color: white; border: none; cursor: pointer; width: 100%; }
-        #debugLog { font-size: 10px; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px; }
+        #debug { color: #888; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -27,50 +27,51 @@
     
     <h3 id="result">最終價: --</h3>
     
-    <div id="debugLog"></div>
+    <div id="debug"></div>
 </div>
 
 <script>
     async function fetchPrice() {
-        const debug = document.getElementById('debugLog');
+        const debug = document.getElementById('debug');
+        const priceDisplay = document.getElementById('officialPrice');
+        
         try {
             const response = await fetch('/api/fuel'); 
             const htmlText = await response.text();
             
+            // 轉成純文字並壓縮空格
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
-            const bodyText = doc.body.innerText;
+            const cleanText = doc.body.innerText.replace(/\s+/g, ' ');
 
-            // 尋找價格邏輯
-            // 加德士目前的結構可能包含 "白金汽油" 字樣，然後是金額
-            // 我們使用正則表達式嘗試抓取數字 (例如 2x.xx)
-            const match = bodyText.match(/白金汽油[\s\S]{0,100}HK\$\s*(\d{2}\.\d{2})/);
+            // 尋找「白金」之後，目標包含數字的價格結構
+            // 這裡嘗試尋找 "白金" 後面 100 字內，任何類似 "HK$ xx.xx" 的模式
+            const match = cleanText.match(/白金.*?HK[\$\s]*(\d{2}\.\d{2})/i);
             
             if (match && match[1]) {
                 const price = match[1];
-                document.getElementById('officialPrice').innerText = `HK$ ${price}`;
-                document.getElementById('officialPrice').dataset.price = price;
+                priceDisplay.innerText = `HK$ ${price}`;
+                priceDisplay.dataset.price = price;
+                debug.innerText = "成功抓取資料";
             } else {
-                debug.innerText = "除錯：找不到價格模式。請檢查網頁是否改版。擷取到的文字樣本: " + bodyText.substring(0, 200);
+                priceDisplay.innerText = "找不到價格";
+                debug.innerHTML = "<strong>解析失敗。</strong><br>抓到的網頁文字樣本 (前 300 字):<br>" + cleanText.substring(0, 300);
             }
         } catch (e) {
-            document.getElementById('officialPrice').innerText = "讀取失敗";
+            priceDisplay.innerText = "連接錯誤";
             debug.innerText = "錯誤: " + e.message;
         }
     }
 
     function calculate() {
-        const priceElement = document.getElementById('officialPrice');
-        const price = parseFloat(priceElement.dataset.price);
+        const pStr = document.getElementById('officialPrice').dataset.price;
+        if (!pStr) return alert("尚無報價");
+        
+        const price = parseFloat(pStr);
         const red = parseFloat(document.getElementById('redDiscount').value);
         const sun = parseFloat(document.getElementById('sundayDiscount').value);
-        
-        if (!isNaN(price)) {
-            const final = price - red - sun;
-            document.getElementById('result').innerText = `最終價: HK$ ${final.toFixed(2)} / L`;
-        } else {
-            alert("尚未載入價格，請稍候");
-        }
+        const final = price - red - sun;
+        document.getElementById('result').innerText = `最終價: HK$ ${final.toFixed(2)} / L`;
     }
 
     window.onload = fetchPrice;
