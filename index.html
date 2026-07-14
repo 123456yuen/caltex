@@ -32,6 +32,9 @@
         try {
             const response = await fetch('/api/fuel'); 
             const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const text = doc.body.innerText; // 獲取整頁純文字
             
             // --- 偵錯區：如果你看不到價格，請打開 F12 Console 看這行內容 ---
             console.log("成功抓取網頁內容，長度:", htmlText.length);
@@ -41,6 +44,18 @@
             
             // 策略：直接搜尋整頁文字，不要只侷限在 table row (tr)
             const bodyText = doc.body.innerText;
+            
+            // 嘗試尋找關鍵字「白金」
+            const index = text.indexOf('白金'); 
+        
+            if (index !== -1) {
+                console.log("找到關鍵字，以下是關鍵字前後的文字片段：");
+                // 印出該關鍵字前後 200 個字，讓我看看結構
+                console.log(text.substring(index, index + 200)); 
+            } else {
+            console.log("找不到「白金」，以下是網頁開頭 500 字：");
+            console.log(text.substring(0, 500));
+            }
             
             // 這裡調整正則表達式，增加容錯率
             // 尋找「白金汽油」字樣，後面跟著金額
