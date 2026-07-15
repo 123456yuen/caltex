@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caltex | 油價計算</title>
+    <title>Caltex | 快速油價計算</title>
     <style>
         :root { 
             --caltex-red: #D4001A; 
@@ -12,7 +12,7 @@
             --text-sub: #6B7280;
         }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background-color: var(--bg-color);
             display: flex; justify-content: center; padding: 20px; margin: 0;
         }
@@ -25,9 +25,17 @@
         
         .price-box { 
             background: #F9FAFB; padding: 16px; border-radius: 12px; 
-            text-align: center; margin-bottom: 24px; border: 1px solid #E5E7EB;
+            text-align: center; margin-bottom: 20px; border: 1px solid #E5E7EB;
         }
         .update-time { font-size: 0.75rem; color: var(--text-sub); margin-top: 4px; }
+        
+        .toggle-section { margin-bottom: 24px; text-align: center; }
+        .toggle-btn { 
+            width: 100%; padding: 14px; border: none; border-radius: 12px; 
+            font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s;
+            background: #E5E7EB; color: #374151;
+        }
+        .toggle-btn.active { background: var(--caltex-red); color: white; }
         
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
         .select-btn { 
@@ -63,9 +71,13 @@
         <div id="last-updated" class="update-time">更新時間: --</div>
     </div>
 
+    <div class="toggle-section">
+        <button id="coupon-toggle" class="toggle-btn" onclick="toggleCoupon()">優惠券: 已關閉</button>
+    </div>
+
     <div class="btn-group">
-        <button class="select-btn" onclick="calculate(350, 50)">門市 $350</button>
-        <button class="select-btn" onclick="calculate(700, 100)">門市 $700</button>
+        <button class="select-btn" onclick="calculate(350)">門市 $350</button>
+        <button class="select-btn" onclick="calculate(700)">門市 $700</button>
     </div>
 
     <div class="result-box" id="result-area" style="display: none;">
@@ -79,33 +91,15 @@
 
 <script>
     let currentPrice = 0;
+    let hasCoupon = false;
 
-    function calculate(total, coupon) {
-        const price = currentPrice;
-        const totalLiters = total / price;
-        const netSpend = total - coupon;
-        const discountableLiters = netSpend / price;
-        const cardDiscount = discountableLiters * 12;
-        const final = netSpend - cardDiscount;
-        
-        document.getElementById('result-area').style.display = 'block';
-        document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(2);
-        document.getElementById('r-liters').innerText = totalLiters.toFixed(2) + ' L';
-        document.getElementById('r-coupon').innerText = '-$' + coupon.toFixed(0);
-        document.getElementById('final-price').innerText = 'HK$ ' + final.toFixed(2);
-        document.getElementById('r-unit').innerText = '實付每公升: $' + (final/totalLiters).toFixed(3);
+    function toggleCoupon() {
+        hasCoupon = !hasCoupon;
+        const btn = document.getElementById('coupon-toggle');
+        btn.classList.toggle('active', hasCoupon);
+        btn.innerText = hasCoupon ? '優惠券: 已開啟' : '優惠券: 已關閉';
     }
 
-    window.onload = function() {
-        fetch('prices.json')
-            .then(response => response.json())
-            .then(data => {
-                currentPrice = data.platinum;
-                document.getElementById('official-price').innerText = '白金牌價: HK$ ' + currentPrice;
-                document.getElementById('last-updated').innerText = '最後更新: ' + data.last_updated;
-            });
-    };
-</script>
-
-</body>
-</html>
+    function calculate(total) {
+        // 如果開啟了優惠券，根據金額決定券額 ($350-$50 / $700-$100)
+        const coupon = hasCoupon ? (total === 700 ? 1
