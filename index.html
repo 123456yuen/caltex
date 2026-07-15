@@ -3,32 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caltex 快速計算機</title>
+    <title>Caltex | 油價計算</title>
     <style>
-        :root { --caltex-red: #d1121d; }
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #ececec; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; max-width: 400px; }
-        h2 { color: var(--caltex-red); text-align: center; margin: 0 0 20px 0; }
+        :root { 
+            --caltex-red: #D4001A; 
+            --bg-color: #F3F4F6;
+            --text-main: #1F2937;
+            --text-sub: #6B7280;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-color);
+            display: flex; justify-content: center; padding: 20px; margin: 0;
+        }
+        .card { 
+            background: white; padding: 24px; border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08); 
+            width: 100%; max-width: 400px;
+        }
+        h2 { color: var(--text-main); text-align: center; margin: 0 0 20px 0; font-size: 1.5rem; }
         
-        .price-box { background: #f4f4f4; padding: 15px; border-radius: 6px; text-align: center; margin-bottom: 20px; border-left: 5px solid var(--caltex-red); }
-        .update-time { font-size: 0.75em; color: #888; }
+        .price-box { 
+            background: #F9FAFB; padding: 16px; border-radius: 12px; 
+            text-align: center; margin-bottom: 24px; border: 1px solid #E5E7EB;
+        }
+        .update-time { font-size: 0.75rem; color: var(--text-sub); margin-top: 4px; }
         
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        .select-btn { flex: 1; padding: 15px; border: none; border-radius: 6px; background: #333; color: white; font-weight: bold; cursor: pointer; }
-        .select-btn:hover { background: var(--caltex-red); }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .select-btn { 
+            padding: 16px; border: none; border-radius: 12px; 
+            background: #111827; color: white; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .select-btn:hover { background: var(--caltex-red); transform: translateY(-2px); }
+        .select-btn:active { transform: translateY(0); }
         
-        .result-box { background: #fff5f5; padding: 20px; border-radius: 8px; border: 1px solid #ffcccc; }
-        .result-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
-        .final-price { font-size: 1.8em; font-weight: bold; color: var(--caltex-red); text-align: center; margin-top: 10px; }
+        .result-box { 
+            background: #FFF5F5; padding: 20px; border-radius: 16px; 
+            border: 1px solid #FECACA;
+        }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: var(--text-main); }
+        .final-price { 
+            font-size: 2rem; font-weight: 800; color: var(--caltex-red); 
+            text-align: center; margin: 15px 0; letter-spacing: -0.5px;
+        }
+        .unit-price { 
+            text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--caltex-red);
+            background: white; padding: 10px; border-radius: 8px; border: 1px dashed var(--caltex-red);
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Caltex 快速計算</h2>
+    <h2>Caltex 計算機</h2>
     
     <div class="price-box">
-        <div id="official-price" style="font-weight: bold;">白金牌價: 讀取中...</div>
+        <div id="official-price" style="font-weight: 700; font-size: 1.1rem;">白金牌價: 讀取中...</div>
         <div id="last-updated" class="update-time">更新時間: --</div>
     </div>
 
@@ -38,11 +69,11 @@
     </div>
 
     <div class="result-box" id="result-area" style="display: none;">
-        <div class="result-row"><span>紅卡優惠:</span> <span id="r-disc">--</span></div>
-        <div class="result-row"><span>總入油量:</span> <span id="r-liters">--</span></div>
-        <div class="result-row"><span>優惠券:</span> <span id="r-coupon">--</span></div>
+        <div class="result-row"><span>紅卡優惠:</span> <span id="r-disc" style="font-weight: 600;">--</span></div>
+        <div class="result-row"><span>總入油量:</span> <span id="r-liters" style="font-weight: 600;">--</span></div>
+        <div class="result-row"><span>優惠券:</span> <span id="r-coupon" style="font-weight: 600;">--</span></div>
         <div class="final-price" id="final-price">HK$ --</div>
-        <div style="text-align: center; font-size: 0.85em; font-weight: bold; color: var(--caltex-red); margin-top: 5px;" id="r-unit">--</div>
+        <div class="unit-price" id="r-unit">實付每公升: --</div>
     </div>
 </div>
 
@@ -51,28 +82,17 @@
 
     function calculate(total, coupon) {
         const price = currentPrice;
-        
-        // 1. 總入油量 (基於門市總數)
         const totalLiters = total / price;
-        
-        // 2. 扣除優惠券後的淨金額
         const netSpend = total - coupon;
-        
-        // 3. 可享紅卡優惠的公升數
         const discountableLiters = netSpend / price;
-        
-        // 4. 紅卡優惠金額
         const cardDiscount = discountableLiters * 12;
-        
-        // 5. 實付金額
         const final = netSpend - cardDiscount;
         
-        // 顯示結果
         document.getElementById('result-area').style.display = 'block';
-        document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(3);
-        document.getElementById('r-liters').innerText = totalLiters.toFixed(3) + ' L';
+        document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(2);
+        document.getElementById('r-liters').innerText = totalLiters.toFixed(2) + ' L';
         document.getElementById('r-coupon').innerText = '-$' + coupon.toFixed(0);
-        document.getElementById('final-price').innerText = '實付: HK$ ' + final.toFixed(3);
+        document.getElementById('final-price').innerText = 'HK$ ' + final.toFixed(2);
         document.getElementById('r-unit').innerText = '實付每公升: $' + (final/totalLiters).toFixed(3);
     }
 
