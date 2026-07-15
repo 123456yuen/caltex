@@ -1,24 +1,27 @@
+const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 async function updatePrice() {
-    console.log("--- 開始抓取 ---");
+    console.log("--- 瀏覽器模式啟動 ---");
+    // 設定 --no-sandbox 讓它能在 GitHub 的伺服器上執行
+    const browser = await puppeteer.launch({ 
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    });
+    const page = await browser.newPage();
+    
     try {
-        const response = await fetch('https://www.caltex.com/hk/zh/motorists/products-and-services/fuel-prices.html', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept-Language': 'zh-HK,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Referer': 'https://www.google.com/'
-            }
+        // 設定 User-Agent 避免被攔截
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
+        await page.goto('https://www.caltex.com/hk/zh/motorists/products-and-services/fuel-prices.html', {
+            waitUntil: 'networkidle2', // 等待網頁載入完成
+            timeout: 60000
         });
 
-        console.log("HTTP 狀態碼:", response.status); // 檢查是否為 200
-        const text = await response.text();
+        const content = await page.content();
         
-        // 印出前 500 個字元來確認網頁內容
-        console.log("抓取到的內容預覽 (前 500 字):");
-        console.log(text.substring(0, 500)); 
-
-        const match = text.match(/白金.*?(\d{2}\.\d{2})/i); // 稍微放寬 regex
+        // 使用正則匹配價格
+        const match = content.match(/白金汽油.*?HK[\$\s]*(\d{2}\.\d{2})/i);
         
         if (match && match[1]) {
             const price = parseFloat(match[1]);
@@ -27,12 +30,16 @@ async function updatePrice() {
                 last_updated: new Date().toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }) 
             };
             fs.writeFileSync('prices.json', JSON.stringify(data, null, 2));
-            console.log("更新成功，價格:", price);
+            console.log("更新成功，最新價格:", price);
         } else {
-            console.log("【警告】找不到價格！regex 匹配失敗。");
+            console.log("【警告】找不到價格，請檢查網頁內容結構是否變更。");
+            console.log("內容預覽:", content.substring(0, 200));
         }
     } catch (e) {
         console.error("執行錯誤:", e);
+    } finally {
+        await browser.close();
     }
 }
+
 updatePrice();
