@@ -3,140 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caltex 油價計算機</title>
+    <title>Caltex 快速計算機</title>
     <style>
-        :root { --caltex-red: #d1121d; --caltex-grey: #f4f4f4; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #ececec; }
-        .card { background: white; padding: 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; max-width: 400px; overflow: hidden; }
-        .header { background-color: var(--caltex-red); color: white; padding: 20px; text-align: center; font-size: 1.5em; font-weight: bold; }
-        .content { padding: 20px; }
-        .price-box { background: var(--caltex-grey); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; border-left: 5px solid var(--caltex-red); }
-        .update-time { font-size: 0.75em; color: #888; margin-top: 5px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        input, select { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
-        .off { background-color: #666; color: white; }
-        .on { background-color: var(--caltex-red); color: white; }
-        .result { margin-top: 25px; padding: 20px; background: #fff5f5; border-radius: 8px; text-align: center; border: 1px solid #ffcccc; }
-        .final-amount { font-size: 1.6em; font-weight: bold; color: var(--caltex-red); margin: 10px 0; }
-        .discount-details { font-size: 0.85em; color: #555; }
+        :root { --caltex-red: #d1121d; }
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #ececec; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; max-width: 400px; }
+        h2 { color: var(--caltex-red); text-align: center; margin: 0 0 20px 0; }
+        
+        .price-box { background: #f4f4f4; padding: 15px; border-radius: 6px; text-align: center; margin-bottom: 20px; border-left: 5px solid var(--caltex-red); }
+        .update-time { font-size: 0.75em; color: #888; }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .select-btn { flex: 1; padding: 15px; border: none; border-radius: 6px; background: #333; color: white; font-weight: bold; cursor: pointer; }
+        .select-btn:hover { background: var(--caltex-red); }
+        
+        .result-box { background: #fff5f5; padding: 20px; border-radius: 8px; border: 1px solid #ffcccc; }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
+        .final-price { font-size: 1.8em; font-weight: bold; color: var(--caltex-red); text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header">CALTEX 加德士</div>
+    <h2>Caltex 快速計算</h2>
     
-    <div class="content">
-        <div class="price-box">
-            <div id="official-price" style="font-weight: bold;">官方牌價: 讀取中...</div>
-            <div id="last-updated" class="update-time">更新時間: 讀取中...</div>
-        </div>
+    <div class="price-box">
+        <div id="official-price" style="font-weight: bold;">白金牌價: 讀取中...</div>
+        <div id="last-updated" class="update-time">更新時間: --</div>
+    </div>
 
-        <div class="input-group">
-            <label>計算模式:</label>
-            <select id="calc-mode" onchange="toggleMode()">
-                <option value="liters">以入油量 (L) 計算</option>
-                <option value="amount">以入油金額 ($) 計算</option>
-            </select>
-        </div>
+    <div class="btn-group">
+        <button class="select-btn" onclick="calculate(350, 50)">門市 $350</button>
+        <button class="select-btn" onclick="calculate(700, 100)">門市 $700</button>
+    </div>
 
-        <div class="input-group">
-            <label id="input-label">入油公升數 (L):</label>
-            <input type="number" id="input-val" value="50" oninput="calculate()">
-        </div>
-
-        <div class="input-group">
-            <label>油品類型:</label>
-            <select id="fuel-type" onchange="calculate()">
-                <option value="platinum">白金汽油 (折扣 $12.0)</option>
-                <option value="gold">黃金汽油 (折扣 $11.0)</option>
-            </select>
-        </div>
-
-        <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠: 關閉</button>
-
-        <div class="result">
-            <div id="result-text">最終應付金額:</div>
-            <div class="final-amount" id="final-price">HK$ --</div>
-            <div id="sub-result" class="discount-details">--</div>
-            <div id="sunday-msg" style="color: var(--caltex-red); font-size: 0.8em; margin-top: 5px;"></div>
-        </div>
+    <div class="result-box" id="result-area" style="display: none;">
+        <div class="result-row"><span>紅卡優惠:</span> <span id="r-disc">--</span></div>
+        <div class="result-row"><span>折扣後入油量:</span> <span id="r-liters">--</span></div>
+        <div class="result-row"><span>優惠券:</span> <span id="r-coupon">--</span></div>
+        <div class="final-price" id="final-price">HK$ --</div>
+        <div style="text-align: center; font-size: 0.8em; color: #777; margin-top: 5px;" id="r-unit">--</div>
     </div>
 </div>
 
 <script>
-    let isSundayActive = false;
-    let prices = { platinum: 0, gold: 0 };
+    let currentPrice = 0;
 
-    function toggleMode() {
-        const mode = document.getElementById('calc-mode').value;
-        document.getElementById('input-label').innerText = (mode === 'liters') ? '入油公升數 (L):' : '輸入金額 ($):';
-        document.getElementById('input-val').value = (mode === 'liters') ? '50' : '500';
-        calculate();
-    }
-
-    function calculate() {
-        const mode = document.getElementById('calc-mode').value;
-        const type = document.getElementById('fuel-type').value;
-        const inputVal = parseFloat(document.getElementById('input-val').value) || 0;
-        const officialPrice = prices[type] || 0;
-        const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
-        const effectivePrice = officialPrice - discountPerLiter;
-
-        let finalPrice = 0;
-        let finalLiters = 0;
-
-        if (mode === 'liters') {
-            // 原有邏輯：Liters -> Price
-            let subtotal = inputVal * effectivePrice;
-            let sundayDiscount = 0;
-            if (isSundayActive) {
-                const multiples = Math.floor(subtotal / 350);
-                sundayDiscount = multiples * 50;
-                subtotal -= sundayDiscount;
-            }
-            document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
-            document.getElementById('sub-result').innerText = `平均每公升: HK$ ${(subtotal / inputVal || 0).toFixed(2)}`;
-            document.getElementById('sunday-msg').innerText = isSundayActive && sundayDiscount > 0 ? `(已減 $${sundayDiscount})` : "";
-        } else {
-            // 新增邏輯：Amount -> Liters
-            // 先算不含折扣的公升數
-            let rawLiters = inputVal / effectivePrice;
-            
-            // 星期日優惠處理：如果金額超過 350，等於額外獲得折扣 (變成更多油)
-            let extraLiters = 0;
-            if (isSundayActive && inputVal >= 350) {
-                const multiples = Math.floor(inputVal / 350);
-                const extraMoney = multiples * 50;
-                extraLiters = extraMoney / effectivePrice;
-            }
-            
-            finalLiters = rawLiters + extraLiters;
-            document.getElementById('final-price').innerText = finalLiters.toFixed(2) + ' L';
-            document.getElementById('sub-result').innerText = `總金額: HK$ ${inputVal.toFixed(2)}`;
-            document.getElementById('sunday-msg').innerText = isSundayActive && extraLiters > 0 ? `(包含星期日優惠獎賞油量)` : "";
-        }
-    }
-
-    function toggleSunday() {
-        isSundayActive = !isSundayActive;
-        const btn = document.getElementById('sunday-toggle');
-        btn.className = isSundayActive ? 'toggle-btn on' : 'toggle-btn off';
-        btn.innerText = isSundayActive ? '星期日優惠: 已開啟' : '星期日優惠: 關閉';
-        calculate();
+    function calculate(total, coupon) {
+        // 1. 牌價 (使用抓取回來的 currentPrice)
+        const price = currentPrice;
+        
+        // 2. 計入紅卡消費額 (扣除優惠券後)
+        const netSpend = total - coupon;
+        
+        // 3. 白金總入油量 (基於 netSpend)
+        const liters = netSpend / price;
+        
+        // 4. 紅卡優惠 (Liters * 12)
+        const cardDiscount = liters * 12;
+        
+        // 5. 實付 (NetSpend - CardDiscount)
+        const final = netSpend - cardDiscount;
+        
+        // 顯示結果
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(3);
+        document.getElementById('r-liters').innerText = liters.toFixed(3) + ' L';
+        document.getElementById('r-coupon').innerText = '-$' + coupon.toFixed(0);
+        document.getElementById('final-price').innerText = '實付: HK$ ' + final.toFixed(3);
+        document.getElementById('r-unit').innerText = '實付每公升: $' + (final/liters).toFixed(3);
     }
 
     window.onload = function() {
         fetch('prices.json')
             .then(response => response.json())
             .then(data => {
-                prices.platinum = data.platinum;
-                prices.gold = (data.platinum - 2.0).toFixed(2);
-                document.getElementById('official-price').innerText = `白金: HK$${prices.platinum} | 黃金: HK$${prices.gold}`;
-                document.getElementById('last-updated').innerText = `更新時間: ${data.last_updated}`;
-                calculate();
+                currentPrice = data.platinum;
+                document.getElementById('official-price').innerText = '白金牌價: HK$ ' + currentPrice;
+                document.getElementById('last-updated').innerText = '最後更新: ' + data.last_updated;
             });
     };
 </script>
