@@ -2,30 +2,35 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 async function updatePrice() {
-    console.log("--- 瀏覽器模式啟動 (已加入強制等待) ---");
+    console.log("--- 瀏覽器模式啟動 (自動化爬蟲) ---");
+    
+    // 啟動瀏覽器，加入必要的參數以適應 GitHub Actions 環境
     const browser = await puppeteer.launch({ 
         args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
     const page = await browser.newPage();
     
     try {
-        // 設定 User-Agent 讓它看起來更像真人
+        // 設定 User-Agent 模擬真實瀏覽器，避免被封鎖
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
         
+        console.log("正在前往加德士官網...");
         await page.goto('https://www.caltex.com/hk/zh/motorists/products-and-services/fuel-prices.html', {
-            waitUntil: 'domcontentloaded' // 改用這個模式，速度更快
+            waitUntil: 'networkidle2', // 等待網絡請求趨於平靜
+            timeout: 60000
         });
 
-        // 【關鍵改動】強制等待 5 秒，讓頁面的 JavaScript 有時間去伺服器抓取價格
-        console.log("等待 JS 載入...");
+        // 強制等待 5 秒，確保網頁完全渲染完畢，JavaScript 已將數據填入 DOM
+        console.log("等待頁面渲染完成...");
         await new Promise(r => setTimeout(r, 5000));
 
-        // 讀取頁面上所有的文字內容，而不僅僅是 HTML
+        // 讀取頁面上的所有文字內容
         const content = await page.evaluate(() => document.body.innerText);
         
-        // 搜尋價格 (加德士價格通常格式為 HK$ xx.xx)
-        // 這裡我們搜尋 "白金" 關鍵字後面的數字
-        const match = content.match(/白金.*?HKD?\s*(\d{2}\.\d{2})/is);
+        // 【核心規則】搜尋 "白金汽油" 後的價格
+        // /is 修飾符：i 代表忽略大小寫，s 代表點號(.)可以匹配換行符號
+        // [^\d]* 代表跳過中間所有非數字內容 (包含換行、HKD 等)
+        const match = content.match(/白金汽油[^\d]*(\d{2}\.\d{2})/is);
         
         if (match && match[1]) {
             const price = parseFloat(match[1]);
@@ -33,17 +38,21 @@ async function updatePrice() {
                 platinum: price, 
                 last_updated: new Date().toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }) 
             };
+            
+            // 寫入 prices.json
             fs.writeFileSync('prices.json', JSON.stringify(data, null, 2));
-            console.log("更新成功，最新價格:", price);
+            console.log("更新成功！最新價格:", price);
         } else {
-            console.log("【警告】找不到價格。");
-            // 偵錯用：印出抓到的文字內容，讓我們看看有沒有價格
-            console.log("抓取到的文字範例:", content.substring(0, 1000));
+            console.log("【錯誤】找不到價格。");
+            // 將部分內容印出來以便除錯
+            console.log("抓取到的內容預覽:", content.substring(0, 500));
         }
+        
     } catch (e) {
-        console.error("執行錯誤:", e);
+        console.error("執行過程中發生錯誤:", e);
     } finally {
         await browser.close();
+        console.log("瀏覽器已關閉。");
     }
 }
 
