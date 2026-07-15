@@ -1,25 +1,29 @@
 name: Auto Update Fuel Price
 on:
   schedule:
-    - cron: '0 */6 * * *' # 每 6 小時執行一次
-  workflow_dispatch: # 讓你可以在 GitHub 後台手動執行
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   update-price:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 重要：賦予寫入權限
+      contents: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      # 將 v3 改為 v4
+      - uses: actions/checkout@v4
+      
+      # 將 v3 改為 v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          
       - run: node scraper.js
+      
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add prices.json
-          # 如果沒有變更就不 commit
           git commit -m "Auto-update fuel price" || exit 0
           git push
