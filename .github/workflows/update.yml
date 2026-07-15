@@ -1,7 +1,7 @@
 name: Auto Update Fuel Price
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 17 * * *'  # 這是 UTC 的 17:00，等於香港的 01:00
   workflow_dispatch:
 
 jobs:
