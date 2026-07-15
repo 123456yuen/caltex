@@ -2,19 +2,24 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>加德士白金汽油計算機</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 400px; margin: auto; }
-        input { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
-        button { padding: 10px; background: #e74c3c; color: white; border: none; cursor: pointer; width: 100%; }
-        #debug { color: #888; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
+        .card { border: 1px solid #ccc; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #333; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; padding: 10px; margin: 5px 0 15px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 12px; background: #e74c3c; color: white; border: none; cursor: pointer; width: 100%; font-size: 16px; border-radius: 4px; }
+        button:hover { background: #c0392b; }
+        #result { margin-top: 20px; font-size: 1.5em; color: #e74c3c; text-align: center; }
+        #updateTime { font-size: 12px; color: #888; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h3>白金汽油即時報價</h3>
+    <h3>白金汽油計算機</h3>
     <p>官方牌價: <strong id="officialPrice">讀取中...</strong></p>
     
     <label>紅卡折扣 ($/L):</label>
@@ -25,47 +30,28 @@
     
     <button onclick="calculate()">計算最終價格</button>
     
-    <h3 id="result">最終價: --</h3>
-    
-    <div id="debug"></div>
+    <div id="result">最終價: --</div>
+    <div id="updateTime"></div>
 </div>
 
 <script>
     async function fetchPrice() {
-        const debug = document.getElementById('debug');
-        const priceDisplay = document.getElementById('officialPrice');
-        
         try {
-            const response = await fetch('/api/fuel'); 
-            const htmlText = await response.text();
+            // 直接讀取自動化方案生成的數據檔
+            const response = await fetch('/prices.json'); 
+            const data = await response.json();
             
-            // 轉成純文字並壓縮空格
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            const cleanText = doc.body.innerText.replace(/\s+/g, ' ');
-
-            // 尋找「白金」之後，目標包含數字的價格結構
-            // 這裡嘗試尋找 "白金" 後面 100 字內，任何類似 "HK$ xx.xx" 的模式
-            const match = cleanText.match(/白金.*?HK[\$\s]*(\d{2}\.\d{2})/i);
-            
-            if (match && match[1]) {
-                const price = match[1];
-                priceDisplay.innerText = `HK$ ${price}`;
-                priceDisplay.dataset.price = price;
-                debug.innerText = "成功抓取資料";
-            } else {
-                priceDisplay.innerText = "找不到價格";
-                debug.innerHTML = "<strong>解析失敗。</strong><br>抓到的網頁文字樣本 (前 300 字):<br>" + cleanText.substring(0, 300);
-            }
+            document.getElementById('officialPrice').innerText = `HK$ ${data.platinum}`;
+            document.getElementById('officialPrice').dataset.price = data.platinum;
+            document.getElementById('updateTime').innerText = `最後更新: ${data.last_updated}`;
         } catch (e) {
-            priceDisplay.innerText = "連接錯誤";
-            debug.innerText = "錯誤: " + e.message;
+            document.getElementById('officialPrice').innerText = "讀取失敗";
         }
     }
 
     function calculate() {
         const pStr = document.getElementById('officialPrice').dataset.price;
-        if (!pStr) return alert("尚無報價");
+        if (!pStr) return alert("資料載入中，請稍候");
         
         const price = parseFloat(pStr);
         const red = parseFloat(document.getElementById('redDiscount').value);
@@ -74,6 +60,7 @@
         document.getElementById('result').innerText = `最終價: HK$ ${final.toFixed(2)} / L`;
     }
 
+    // 頁面載入時自動執行
     window.onload = fetchPrice;
 </script>
 </body>
