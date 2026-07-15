@@ -8,24 +8,18 @@
         :root { --caltex-red: #d1121d; --caltex-grey: #f4f4f4; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #ececec; }
         .card { background: white; padding: 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; max-width: 400px; overflow: hidden; }
-        
-        /* 加德士風格 Header */
-        .header { background-color: var(--caltex-red); color: white; padding: 20px; text-align: center; font-size: 1.5em; font-weight: bold; letter-spacing: 1px; }
-        
+        .header { background-color: var(--caltex-red); color: white; padding: 20px; text-align: center; font-size: 1.5em; font-weight: bold; }
         .content { padding: 20px; }
         .price-box { background: var(--caltex-grey); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; border-left: 5px solid var(--caltex-red); }
         .update-time { font-size: 0.75em; color: #888; margin-top: 5px; }
-        
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
         input, select { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        
         .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
         .off { background-color: #666; color: white; }
-        .on { background-color: var(--caltex-red); color: white; box-shadow: 0 4px 10px rgba(209, 18, 29, 0.3); }
-        
+        .on { background-color: var(--caltex-red); color: white; }
         .result { margin-top: 25px; padding: 20px; background: #fff5f5; border-radius: 8px; text-align: center; border: 1px solid #ffcccc; }
-        .final-amount { font-size: 2em; font-weight: bold; color: var(--caltex-red); margin: 10px 0; }
+        .final-amount { font-size: 1.6em; font-weight: bold; color: var(--caltex-red); margin: 10px 0; }
         .discount-details { font-size: 0.85em; color: #555; }
     </style>
 </head>
@@ -41,6 +35,19 @@
         </div>
 
         <div class="input-group">
+            <label>計算模式:</label>
+            <select id="calc-mode" onchange="toggleMode()">
+                <option value="liters">以入油量 (L) 計算</option>
+                <option value="amount">以入油金額 ($) 計算</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label id="input-label">入油公升數 (L):</label>
+            <input type="number" id="input-val" value="50" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
             <label>油品類型:</label>
             <select id="fuel-type" onchange="calculate()">
                 <option value="platinum">白金汽油 (折扣 $12.0)</option>
@@ -48,17 +55,12 @@
             </select>
         </div>
 
-        <div class="input-group">
-            <label>入油公升數 (L):</label>
-            <input type="number" id="liters" value="50" oninput="calculate()">
-        </div>
-
         <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠: 關閉</button>
 
         <div class="result">
-            <div>最終應付金額:</div>
+            <div id="result-text">最終應付金額:</div>
             <div class="final-amount" id="final-price">HK$ --</div>
-            <div id="effective-price" class="discount-details">平均每公升: --</div>
+            <div id="sub-result" class="discount-details">--</div>
             <div id="sunday-msg" style="color: var(--caltex-red); font-size: 0.8em; margin-top: 5px;"></div>
         </div>
     </div>
@@ -68,34 +70,53 @@
     let isSundayActive = false;
     let prices = { platinum: 0, gold: 0 };
 
-    function calculate() {
-        const type = document.getElementById('fuel-type').value;
-        const liters = parseFloat(document.getElementById('liters').value) || 0;
-        const officialPrice = prices[type] || 0;
-        
-        const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
-        let subtotal = liters * (officialPrice - discountPerLiter);
-        
-        let sundayDiscount = 0;
-        let msg = "";
-        
-        if (isSundayActive) {
-            const multiples = Math.floor(subtotal / 350);
-            sundayDiscount = multiples * 50;
-            if (multiples > 0) {
-                subtotal -= sundayDiscount;
-                msg = `(已減 $${sundayDiscount})`;
-            } else {
-                msg = "(未達 $350 門檻)";
-            }
-        }
+    function toggleMode() {
+        const mode = document.getElementById('calc-mode').value;
+        document.getElementById('input-label').innerText = (mode === 'liters') ? '入油公升數 (L):' : '輸入金額 ($):';
+        document.getElementById('input-val').value = (mode === 'liters') ? '50' : '500';
+        calculate();
+    }
 
-        document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
-        document.getElementById('sunday-msg').innerText = isSundayActive ? msg : "";
-        
-        if (liters > 0) {
-            const avg = subtotal / liters;
-            document.getElementById('effective-price').innerText = `平均每公升: HK$ ${avg.toFixed(2)}`;
+    function calculate() {
+        const mode = document.getElementById('calc-mode').value;
+        const type = document.getElementById('fuel-type').value;
+        const inputVal = parseFloat(document.getElementById('input-val').value) || 0;
+        const officialPrice = prices[type] || 0;
+        const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
+        const effectivePrice = officialPrice - discountPerLiter;
+
+        let finalPrice = 0;
+        let finalLiters = 0;
+
+        if (mode === 'liters') {
+            // 原有邏輯：Liters -> Price
+            let subtotal = inputVal * effectivePrice;
+            let sundayDiscount = 0;
+            if (isSundayActive) {
+                const multiples = Math.floor(subtotal / 350);
+                sundayDiscount = multiples * 50;
+                subtotal -= sundayDiscount;
+            }
+            document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
+            document.getElementById('sub-result').innerText = `平均每公升: HK$ ${(subtotal / inputVal || 0).toFixed(2)}`;
+            document.getElementById('sunday-msg').innerText = isSundayActive && sundayDiscount > 0 ? `(已減 $${sundayDiscount})` : "";
+        } else {
+            // 新增邏輯：Amount -> Liters
+            // 先算不含折扣的公升數
+            let rawLiters = inputVal / effectivePrice;
+            
+            // 星期日優惠處理：如果金額超過 350，等於額外獲得折扣 (變成更多油)
+            let extraLiters = 0;
+            if (isSundayActive && inputVal >= 350) {
+                const multiples = Math.floor(inputVal / 350);
+                const extraMoney = multiples * 50;
+                extraLiters = extraMoney / effectivePrice;
+            }
+            
+            finalLiters = rawLiters + extraLiters;
+            document.getElementById('final-price').innerText = finalLiters.toFixed(2) + ' L';
+            document.getElementById('sub-result').innerText = `總金額: HK$ ${inputVal.toFixed(2)}`;
+            document.getElementById('sunday-msg').innerText = isSundayActive && extraLiters > 0 ? `(包含星期日優惠獎賞油量)` : "";
         }
     }
 
@@ -113,7 +134,6 @@
             .then(data => {
                 prices.platinum = data.platinum;
                 prices.gold = (data.platinum - 2.0).toFixed(2);
-                
                 document.getElementById('official-price').innerText = `白金: HK$${prices.platinum} | 黃金: HK$${prices.gold}`;
                 document.getElementById('last-updated').innerText = `更新時間: ${data.last_updated}`;
                 calculate();
