@@ -23,7 +23,7 @@
     <h2>白金汽油計算機</h2>
     
     <div class="input-group">
-        <div id="official-price" style="font-weight: bold; margin-bottom: 10px;">官方牌價: 載入中...</div>
+        <div id="official-price" style="font-weight: bold; margin-bottom: 10px;">官方牌價: 讀取中...</div>
     </div>
 
     <div class="input-group">
@@ -45,12 +45,15 @@
 <script>
     // 頁面載入時自動取得價格
     window.onload = function() {
+        // 使用 fetch 來讀取同目錄下的 prices.json
         fetch('prices.json')
             .then(response => response.json())
             .then(data => {
+                // 更新畫面內容
                 document.getElementById('official-price').innerText = '官方牌價: HK$ ' + data.platinum;
                 document.getElementById('last-updated').innerText = '最後更新: ' + data.last_updated;
-                window.currentPrice = data.platinum; // 存起來給計算按鈕用
+                // 將牌價存入 window 物件，供按鈕計算使用
+                window.currentPrice = data.platinum; 
             })
             .catch(err => {
                 document.getElementById('official-price').innerText = '無法讀取價格資料';
