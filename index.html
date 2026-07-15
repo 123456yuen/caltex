@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caltex | 快速油價計算</title>
+    <title>Caltex | 油價計算機</title>
     <style>
         :root { 
             --caltex-red: #D4001A; 
@@ -48,7 +48,7 @@
         
         .result-box { 
             background: #FFF5F5; padding: 20px; border-radius: 16px; 
-            border: 1px solid #FECACA;
+            border: 1px solid #FECACA; display: none;
         }
         .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; color: var(--text-main); }
         .final-price { 
@@ -80,7 +80,7 @@
         <button class="select-btn" onclick="calculate(700)">門市 $700</button>
     </div>
 
-    <div class="result-box" id="result-area" style="display: none;">
+    <div class="result-box" id="result-area">
         <div class="result-row"><span>紅卡優惠:</span> <span id="r-disc" style="font-weight: 600;">--</span></div>
         <div class="result-row"><span>總入油量:</span> <span id="r-liters" style="font-weight: 600;">--</span></div>
         <div class="result-row"><span>優惠券:</span> <span id="r-coupon" style="font-weight: 600;">--</span></div>
@@ -90,7 +90,7 @@
 </div>
 
 <script>
-    let currentPrice = 0;
+    let currentPrice = 33.64; // 設定預設牌價，以防 fetch 失敗
     let hasCoupon = false;
 
     function toggleCoupon() {
@@ -101,5 +101,39 @@
     }
 
     function calculate(total) {
-        // 如果開啟了優惠券，根據金額決定券額 ($350-$50 / $700-$100)
-        const coupon = hasCoupon ? (total === 700 ? 1
+        const coupon = hasCoupon ? (total === 700 ? 100 : 50) : 0;
+        const price = currentPrice;
+        
+        // 計算邏輯
+        const totalLiters = total / price;
+        const netSpend = total - coupon;
+        const discountableLiters = netSpend / price;
+        const cardDiscount = discountableLiters * 12;
+        const final = netSpend - cardDiscount;
+        
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(2);
+        document.getElementById('r-liters').innerText = totalLiters.toFixed(2) + ' L';
+        document.getElementById('r-coupon').innerText = '-$' + coupon.toFixed(0);
+        document.getElementById('final-price').innerText = 'HK$ ' + final.toFixed(2);
+        document.getElementById('r-unit').innerText = '實付每公升: $' + (final/totalLiters).toFixed(3);
+    }
+
+    window.onload = function() {
+        fetch('prices.json')
+            .then(response => response.json())
+            .then(data => {
+                currentPrice = data.platinum;
+                document.getElementById('official-price').innerText = '白金牌價: HK$ ' + currentPrice;
+                document.getElementById('last-updated').innerText = '最後更新: ' + data.last_updated;
+            })
+            .catch(err => {
+                console.log("未能讀取 JSON，使用預設價格: " + currentPrice);
+                document.getElementById('official-price').innerText = '白金牌價: HK$ ' + currentPrice + ' (使用預設)';
+                document.getElementById('last-updated').innerText = '更新時間: 讀取失敗';
+            });
+    };
+</script>
+
+</body>
+</html>
