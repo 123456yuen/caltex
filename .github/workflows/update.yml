@@ -10,14 +10,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      # 將 v3 改為 v4
       - uses: actions/checkout@v4
       
-      # 將 v3 改為 v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           
+      # 這行會自動讀取 package.json 並安裝 puppeteer
+      - name: Install dependencies
+        run: npm install
+        
       - run: node scraper.js
       
       - name: Commit and push changes
