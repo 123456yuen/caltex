@@ -3,78 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>白金汽油計算機</title>
+    <title>加德士油價計算機</title>
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #f4f4f9; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { margin-top: 0; color: #333; }
+        h2 { margin-top: 0; color: #333; text-align: center; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #c0392b; }
-        .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; color: #333; text-align: center; }
-        .info { font-size: 0.85em; color: #777; margin-top: 10px; text-align: center; }
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        .off { background-color: #95a5a6; color: white; }
+        .on { background-color: #27ae60; color: white; }
+        .result { margin-top: 20px; padding: 15px; background: #fff3f3; border-radius: 6px; text-align: center; border: 1px solid #fbdada; }
+        .final-amount { font-size: 1.8em; font-weight: bold; color: #e74c3c; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>白金汽油計算機</h2>
-    
+    <h2>加德士油價計算機</h2>
+    <div id="official-price" style="text-align: center; margin-bottom: 15px;">讀取牌價中...</div>
+
     <div class="input-group">
-        <div id="official-price" style="font-weight: bold; margin-bottom: 10px;">官方牌價: 讀取中...</div>
+        <label>油品類型:</label>
+        <select id="fuel-type" onchange="calculate()">
+            <option value="platinum">白金 (折扣 $12.0)</option>
+            <option value="gold">黃金 (折扣 $11.0)</option>
+        </select>
     </div>
 
     <div class="input-group">
-        <label>紅卡折扣 ($/L):</label>
-        <input type="number" id="discount1" value="6.00" step="0.01">
+        <label>入油公升數 (L):</label>
+        <input type="number" id="liters" value="50" oninput="calculate()">
     </div>
 
-    <div class="input-group">
-        <label>星期日/額外折扣 ($/L):</label>
-        <input type="number" id="discount2" value="1.00" step="0.01">
+    <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠 (滿$350減$50): 關閉</button>
+
+    <div class="result">
+        <div>最終應付金額:</div>
+        <div class="final-amount" id="final-price">HK$ --</div>
+        <div id="effective-price">平均每公升: --</div>
     </div>
-
-    <button id="calc-btn">計算最終價格</button>
-
-    <div class="result" id="final-price">最終價: --</div>
-    <div class="info" id="last-updated">最後更新: --</div>
 </div>
 
 <script>
-    // 頁面載入時自動取得價格
+    let isSundayActive = false;
+    let prices = { platinum: 0, gold: 0 };
+
+    function calculate() {
+        const type = document.getElementById('fuel-type').value;
+        const liters = parseFloat(document.getElementById('liters').value) || 0;
+        const officialPrice = prices[type] || 0;
+        
+        // 折扣設定
+        const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
+        
+        // 計算邏輯
+        let subtotal = liters * (officialPrice - discountPerLiter);
+        
+        // 星期日滿 $350 減 $50
+        let discountApplied = 0;
+        if (isSundayActive && subtotal >= 350) {
+            subtotal -= 50;
+            discountApplied = 50;
+        }
+
+        document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
+        
+        if (liters > 0) {
+            const avg = subtotal / liters;
+            document.getElementById('effective-price').innerText = `平均每公升: HK$ ${avg.toFixed(2)}`;
+        }
+    }
+
+    function toggleSunday() {
+        isSundayActive = !isSundayActive;
+        const btn = document.getElementById('sunday-toggle');
+        btn.className = isSundayActive ? 'toggle-btn on' : 'toggle-btn off';
+        btn.innerText = isSundayActive ? '星期日優惠: 已開啟' : '星期日優惠: 關閉';
+        calculate();
+    }
+
     window.onload = function() {
-        // 使用 fetch 來讀取同目錄下的 prices.json
         fetch('prices.json')
             .then(response => response.json())
             .then(data => {
-                // 更新畫面內容
-                document.getElementById('official-price').innerText = '官方牌價: HK$ ' + data.platinum;
-                document.getElementById('last-updated').innerText = '最後更新: ' + data.last_updated;
-                // 將牌價存入 window 物件，供按鈕計算使用
-                window.currentPrice = data.platinum; 
-            })
-            .catch(err => {
-                document.getElementById('official-price').innerText = '無法讀取價格資料';
-                console.error(err);
+                prices.platinum = data.platinum;
+                prices.gold = 31.84; // 暫時寫死黃金價格，如需自動化可修改 scraper.js
+                document.getElementById('official-price').innerText = `白金: HK$${prices.platinum} | 黃金: HK$${prices.gold}`;
+                calculate();
             });
     };
-
-    // 計算按鈕邏輯
-    document.getElementById('calc-btn').addEventListener('click', function() {
-        const price = window.currentPrice || 0;
-        const d1 = parseFloat(document.getElementById('discount1').value) || 0;
-        const d2 = parseFloat(document.getElementById('discount2').value) || 0;
-        
-        const final = price - d1 - d2;
-        
-        if (price > 0) {
-            document.getElementById('final-price').innerText = '最終價: HK$ ' + final.toFixed(2);
-        } else {
-            alert("正在讀取數據，請稍候...");
-        }
-    });
 </script>
 
 </body>
