@@ -3,48 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加德士油價計算機</title>
+    <title>Caltex 油價計算機</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { margin-top: 0; color: #333; text-align: center; }
+        :root { --caltex-red: #d1121d; --caltex-grey: #f4f4f4; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; padding: 20px; background-color: #ececec; }
+        .card { background: white; padding: 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; max-width: 400px; overflow: hidden; }
+        
+        /* 加德士風格 Header */
+        .header { background-color: var(--caltex-red); color: white; padding: 20px; text-align: center; font-size: 1.5em; font-weight: bold; letter-spacing: 1px; }
+        
+        .content { padding: 20px; }
+        .price-box { background: var(--caltex-grey); padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; border-left: 5px solid var(--caltex-red); }
+        .update-time { font-size: 0.75em; color: #888; margin-top: 5px; }
+        
         .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; transition: 0.3s; }
-        .off { background-color: #95a5a6; color: white; }
-        .on { background-color: #27ae60; color: white; }
-        .result { margin-top: 20px; padding: 15px; background: #fff3f3; border-radius: 6px; text-align: center; border: 1px solid #fbdada; }
-        .final-amount { font-size: 1.8em; font-weight: bold; color: #e74c3c; }
-        .discount-details { font-size: 0.85em; color: #555; margin-top: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input, select { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        
+        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        .off { background-color: #666; color: white; }
+        .on { background-color: var(--caltex-red); color: white; box-shadow: 0 4px 10px rgba(209, 18, 29, 0.3); }
+        
+        .result { margin-top: 25px; padding: 20px; background: #fff5f5; border-radius: 8px; text-align: center; border: 1px solid #ffcccc; }
+        .final-amount { font-size: 2em; font-weight: bold; color: var(--caltex-red); margin: 10px 0; }
+        .discount-details { font-size: 0.85em; color: #555; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>加德士油價計算機</h2>
-    <div id="official-price" style="text-align: center; margin-bottom: 15px;">讀取牌價中...</div>
+    <div class="header">CALTEX 加德士</div>
+    
+    <div class="content">
+        <div class="price-box">
+            <div id="official-price" style="font-weight: bold;">官方牌價: 讀取中...</div>
+            <div id="last-updated" class="update-time">更新時間: 讀取中...</div>
+        </div>
 
-    <div class="input-group">
-        <label>油品類型:</label>
-        <select id="fuel-type" onchange="calculate()">
-            <option value="platinum">白金 (折扣 $12.0)</option>
-            <option value="gold">黃金 (折扣 $11.0)</option>
-        </select>
-    </div>
+        <div class="input-group">
+            <label>油品類型:</label>
+            <select id="fuel-type" onchange="calculate()">
+                <option value="platinum">白金汽油 (折扣 $12.0)</option>
+                <option value="gold">黃金汽油 (折扣 $11.0)</option>
+            </select>
+        </div>
 
-    <div class="input-group">
-        <label>入油公升數 (L):</label>
-        <input type="number" id="liters" value="50" oninput="calculate()">
-    </div>
+        <div class="input-group">
+            <label>入油公升數 (L):</label>
+            <input type="number" id="liters" value="50" oninput="calculate()">
+        </div>
 
-    <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠: 關閉</button>
+        <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠: 關閉</button>
 
-    <div class="result">
-        <div>最終應付金額:</div>
-        <div class="final-amount" id="final-price">HK$ --</div>
-        <div id="effective-price" class="discount-details">平均每公升: --</div>
-        <div id="sunday-msg" class="discount-details" style="color: #27ae60;"></div>
+        <div class="result">
+            <div>最終應付金額:</div>
+            <div class="final-amount" id="final-price">HK$ --</div>
+            <div id="effective-price" class="discount-details">平均每公升: --</div>
+            <div id="sunday-msg" style="color: var(--caltex-red); font-size: 0.8em; margin-top: 5px;"></div>
+        </div>
     </div>
 </div>
 
@@ -57,31 +73,25 @@
         const liters = parseFloat(document.getElementById('liters').value) || 0;
         const officialPrice = prices[type] || 0;
         
-        // 基本折扣 (每公升)
         const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
-        
-        // 計算扣除每公升折扣後的金額
         let subtotal = liters * (officialPrice - discountPerLiter);
         
-        // 【修正邏輯】星期日每 $350 減 $50
         let sundayDiscount = 0;
         let msg = "";
         
         if (isSundayActive) {
-            // 計算滿 $350 的組數，無條件捨去
             const multiples = Math.floor(subtotal / 350);
             sundayDiscount = multiples * 50;
-            
             if (multiples > 0) {
                 subtotal -= sundayDiscount;
-                msg = `(已享星期日優惠: 減 $${sundayDiscount})`;
+                msg = `(已減 $${sundayDiscount})`;
             } else {
-                msg = "(未達 $350 折扣門檻)";
+                msg = "(未達 $350 門檻)";
             }
         }
 
         document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
-        document.getElementById('sunday-msg').innerText = msg;
+        document.getElementById('sunday-msg').innerText = isSundayActive ? msg : "";
         
         if (liters > 0) {
             const avg = subtotal / liters;
@@ -102,10 +112,10 @@
             .then(response => response.json())
             .then(data => {
                 prices.platinum = data.platinum;
-                // 這裡假設黃金價格為白金價減去 $2 (通常加德士黃金比白金便宜)
-                // 如有精確數據來源可再調整 scraper.js
-                prices.gold = (data.platinum - 2.0).toFixed(2); 
+                prices.gold = (data.platinum - 2.0).toFixed(2);
+                
                 document.getElementById('official-price').innerText = `白金: HK$${prices.platinum} | 黃金: HK$${prices.gold}`;
+                document.getElementById('last-updated').innerText = `更新時間: ${data.last_updated}`;
                 calculate();
             });
     };
