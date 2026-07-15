@@ -25,7 +25,7 @@ async function updatePrice() {
         
         // 搜尋價格 (加德士價格通常格式為 HK$ xx.xx)
         // 這裡我們搜尋 "白金" 關鍵字後面的數字
-        const match = content.match(/白金.*?HK\$?\s*(\d{2}\.\d{2})/i);
+        const match = content.match(/白金.*?HKD?\s*(\d{2}\.\d{2})/is);
         
         if (match && match[1]) {
             const price = parseFloat(match[1]);
