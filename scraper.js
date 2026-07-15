@@ -30,7 +30,8 @@ async function updatePrice() {
         // 【核心規則】搜尋 "白金汽油" 後的價格
         // /is 修飾符：i 代表忽略大小寫，s 代表點號(.)可以匹配換行符號
         // [^\d]* 代表跳過中間所有非數字內容 (包含換行、HKD 等)
-        const match = content.match(/白金汽油[^\d]*(\d{2}\.\d{2})/is);
+        // [\s\S]*? 的意思是：匹配所有字元（包含換行），直到找到第一個數字組合
+        const match = content.match(/白金[\s\S]*?(\d{2}\.\d{2})/i);
         
         if (match && match[1]) {
             const price = parseFloat(match[1]);
