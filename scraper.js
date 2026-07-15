@@ -2,8 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 async function updatePrice() {
-    console.log("--- 瀏覽器模式啟動 (最終暴力清除法) ---");
-    
+    console.log("--- 瀏覽器模式啟動 (除錯模式) ---");
     const browser = await puppeteer.launch({ 
         args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
@@ -11,25 +10,29 @@ async function updatePrice() {
     
     try {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
-        
         await page.goto('https://www.caltex.com/hk/zh/motorists/products-and-services/fuel-prices.html', {
             waitUntil: 'networkidle2',
             timeout: 60000
         });
 
-        // 強制等待渲染
         await new Promise(r => setTimeout(r, 5000));
-
-        // 取得頁面所有文字
         const text = await page.evaluate(() => document.body.innerText);
+
+        // 【極度寬鬆除錯法】
+        // 1. 先把所有非數字、非中文字、非英文的符號變成空格
+        const cleanText = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9.]/g, ' ');
         
-        // 【核心邏輯：暴力清除所有空格與換行】
-        // 將所有換行、Tab、空白全部刪除，讓網頁變成一行文字
-        const cleanText = text.replace(/\s+/g, '');
-        
-        // 現在文字變成這樣：...特配Techron®白金汽油HKD33.64...
-        // 我們直接抓 "白金汽油" 後面的數字
-        const match = cleanText.match(/白金汽油.*?(\d{2}\.\d{2})/i);
+        console.log("=== 處理後的文字片段 (檢查是否有白金字樣) ===");
+        const index = cleanText.indexOf("白金");
+        if (index !== -1) {
+            console.log("找到 '白金' 在字串中的位置:", index);
+            console.log("片段:", cleanText.substring(index, index + 50));
+        } else {
+            console.log("完全找不到 '白金' 兩個字！文字內容可能編碼異常。");
+        }
+
+        // 2. 直接找 "白金" 後面緊接著的數字
+        const match = cleanText.match(/白金.*?(\d+\.\d+)/);
         
         if (match && match[1]) {
             const price = parseFloat(match[1]);
@@ -38,10 +41,9 @@ async function updatePrice() {
                 last_updated: new Date().toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' }) 
             };
             fs.writeFileSync('prices.json', JSON.stringify(data, null, 2));
-            console.log("成功抓取！價格是:", price);
+            console.log("更新成功！價格:", price);
         } else {
-            console.log("【依然失敗】找不到價格，已清除空格後的文字如下：");
-            console.log(cleanText.substring(0, 500));
+            console.log("【依然找不到】請看上面的文字片段內容進行除錯。");
         }
         
     } catch (e) {
@@ -50,5 +52,4 @@ async function updatePrice() {
         await browser.close();
     }
 }
-
 updatePrice();
