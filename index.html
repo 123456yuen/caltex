@@ -39,10 +39,10 @@
 
     <div class="result-box" id="result-area" style="display: none;">
         <div class="result-row"><span>紅卡優惠:</span> <span id="r-disc">--</span></div>
-        <div class="result-row"><span>折扣後入油量:</span> <span id="r-liters">--</span></div>
+        <div class="result-row"><span>總入油量:</span> <span id="r-liters">--</span></div>
         <div class="result-row"><span>優惠券:</span> <span id="r-coupon">--</span></div>
         <div class="final-price" id="final-price">HK$ --</div>
-        <div style="text-align: center; font-size: 0.8em; color: #777; margin-top: 5px;" id="r-unit">--</div>
+        <div style="text-align: center; font-size: 0.85em; font-weight: bold; color: var(--caltex-red); margin-top: 5px;" id="r-unit">--</div>
     </div>
 </div>
 
@@ -50,28 +50,30 @@
     let currentPrice = 0;
 
     function calculate(total, coupon) {
-        // 1. 牌價 (使用抓取回來的 currentPrice)
         const price = currentPrice;
         
-        // 2. 計入紅卡消費額 (扣除優惠券後)
+        // 1. 總入油量 (基於門市總數)
+        const totalLiters = total / price;
+        
+        // 2. 扣除優惠券後的淨金額
         const netSpend = total - coupon;
         
-        // 3. 白金總入油量 (基於 netSpend)
-        const liters = netSpend / price;
+        // 3. 可享紅卡優惠的公升數
+        const discountableLiters = netSpend / price;
         
-        // 4. 紅卡優惠 (Liters * 12)
-        const cardDiscount = liters * 12;
+        // 4. 紅卡優惠金額
+        const cardDiscount = discountableLiters * 12;
         
-        // 5. 實付 (NetSpend - CardDiscount)
+        // 5. 實付金額
         const final = netSpend - cardDiscount;
         
         // 顯示結果
         document.getElementById('result-area').style.display = 'block';
         document.getElementById('r-disc').innerText = '-$' + cardDiscount.toFixed(3);
-        document.getElementById('r-liters').innerText = liters.toFixed(3) + ' L';
+        document.getElementById('r-liters').innerText = totalLiters.toFixed(3) + ' L';
         document.getElementById('r-coupon').innerText = '-$' + coupon.toFixed(0);
         document.getElementById('final-price').innerText = '實付: HK$ ' + final.toFixed(3);
-        document.getElementById('r-unit').innerText = '實付每公升: $' + (final/liters).toFixed(3);
+        document.getElementById('r-unit').innerText = '實付每公升: $' + (final/totalLiters).toFixed(3);
     }
 
     window.onload = function() {
