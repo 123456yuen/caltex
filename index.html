@@ -11,11 +11,12 @@
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        .toggle-btn { width: 100%; padding: 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; transition: 0.3s; }
         .off { background-color: #95a5a6; color: white; }
         .on { background-color: #27ae60; color: white; }
         .result { margin-top: 20px; padding: 15px; background: #fff3f3; border-radius: 6px; text-align: center; border: 1px solid #fbdada; }
         .final-amount { font-size: 1.8em; font-weight: bold; color: #e74c3c; }
+        .discount-details { font-size: 0.85em; color: #555; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -37,12 +38,13 @@
         <input type="number" id="liters" value="50" oninput="calculate()">
     </div>
 
-    <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠 (滿$350減$50): 關閉</button>
+    <button id="sunday-toggle" class="toggle-btn off" onclick="toggleSunday()">星期日優惠: 關閉</button>
 
     <div class="result">
         <div>最終應付金額:</div>
         <div class="final-amount" id="final-price">HK$ --</div>
-        <div id="effective-price">平均每公升: --</div>
+        <div id="effective-price" class="discount-details">平均每公升: --</div>
+        <div id="sunday-msg" class="discount-details" style="color: #27ae60;"></div>
     </div>
 </div>
 
@@ -55,20 +57,31 @@
         const liters = parseFloat(document.getElementById('liters').value) || 0;
         const officialPrice = prices[type] || 0;
         
-        // 折扣設定
+        // 基本折扣 (每公升)
         const discountPerLiter = (type === 'platinum') ? 12.0 : 11.0;
         
-        // 計算邏輯
+        // 計算扣除每公升折扣後的金額
         let subtotal = liters * (officialPrice - discountPerLiter);
         
-        // 星期日滿 $350 減 $50
-        let discountApplied = 0;
-        if (isSundayActive && subtotal >= 350) {
-            subtotal -= 50;
-            discountApplied = 50;
+        // 【修正邏輯】星期日每 $350 減 $50
+        let sundayDiscount = 0;
+        let msg = "";
+        
+        if (isSundayActive) {
+            // 計算滿 $350 的組數，無條件捨去
+            const multiples = Math.floor(subtotal / 350);
+            sundayDiscount = multiples * 50;
+            
+            if (multiples > 0) {
+                subtotal -= sundayDiscount;
+                msg = `(已享星期日優惠: 減 $${sundayDiscount})`;
+            } else {
+                msg = "(未達 $350 折扣門檻)";
+            }
         }
 
         document.getElementById('final-price').innerText = 'HK$ ' + subtotal.toFixed(2);
+        document.getElementById('sunday-msg').innerText = msg;
         
         if (liters > 0) {
             const avg = subtotal / liters;
@@ -89,7 +102,9 @@
             .then(response => response.json())
             .then(data => {
                 prices.platinum = data.platinum;
-                prices.gold = 31.84; // 暫時寫死黃金價格，如需自動化可修改 scraper.js
+                // 這裡假設黃金價格為白金價減去 $2 (通常加德士黃金比白金便宜)
+                // 如有精確數據來源可再調整 scraper.js
+                prices.gold = (data.platinum - 2.0).toFixed(2); 
                 document.getElementById('official-price').innerText = `白金: HK$${prices.platinum} | 黃金: HK$${prices.gold}`;
                 calculate();
             });
